@@ -1,0 +1,132 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Detection History – Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4 d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h1 class="page-title">Detection History</h1>
+    <p class="page-sub">All your past article analyses</p>
+  </div>
+  <a href="{{ url_for('dashboard.reports') }}" class="btn btn-orange-full" style="font-size:1.3rem; padding:6px 12px;"><i class="fa-solid fa-download me-1"></i>Export CSV</a>
+</div>
+
+<!-- Search + Filter -->
+<form method="GET" class="row g-2 mb-4 align-items-stretch">
+  <div class="col-sm-7">
+    <input type="text" name="search" class="form-control h-100" placeholder="Search articles..." value="{{ search }}" style="font-size:1.3rem;" />
+  </div>
+  <div class="col-sm-3">
+    <select name="filter" class="form-select h-100" style="font-size:1.3rem;">
+      <option value="" {% if not filter_val %}selected{% endif %}>All Predictions</option>
+      <option value="Fake" {% if filter_val=='Fake' %}selected{% endif %}>Fake</option>
+      <option value="Real" {% if filter_val=='Real' %}selected{% endif %}>Real</option>
+      <option value="Uncertain" {% if filter_val=='Uncertain' %}selected{% endif %}>Uncertain</option>
+    </select>
+  </div>
+  <div class="col-sm-2 d-flex">
+    <button type="submit" class="btn btn-orange-full w-100" style="font-size:1.3rem; padding:6px 12px;">Filter</button>
+  </div>
+</form>
+
+<div class="dash-card">
+  <div class="dash-card-body p-0">
+    <div class="table-responsive">
+      <table class="table dash-table mb-0">
+        <thead>
+          <tr><th>#</th><th>Article Preview</th><th>Prediction</th><th>Confidence</th><th>Date/Time</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for d in detections.items %}
+          <tr>
+            <td>{{ loop.index + (detections.page-1)*detections.per_page }}</td>
+            <td style="max-width:320px" class="text-truncate">{{ (d.article_snippet or '')[:80] }}</td>
+            <td><span class="pred-badge pred-{{ d.prediction|lower }}">{{ d.prediction }}</span></td>
+            <td>
+              <div class="mini-progress">
+                <div class="mini-bar" style="width:{{ (d.confidence*100)|round(0)|int }}%"></div>
+              </div>
+              <small>{{ (d.confidence*100)|round(1) }}%</small>
+            </td>
+            <td><small>{{ d.detected_at.strftime('%b %d, %Y %H:%M') }}</small></td>
+            <td>
+              <button class="btn btn-sm btn-outline-navy view-btn"
+                data-snippet="{{ d.article_snippet or '' }}"
+                data-full="{{ d.full_article or '' }}"
+                data-pred="{{ d.prediction }}"
+                data-conf="{{ (d.confidence*100)|round(1) }}"
+                data-date="{{ d.detected_at.strftime('%b %d, %Y %H:%M') }}"
+                data-bs-toggle="modal" data-bs-target="#detailModal">
+                View
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-5">No detections found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if detections.pages > 1 %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% if detections.has_prev %}
+    <li class="page-item"><a class="page-link" href="?page={{ detections.prev_num }}&search={{ search }}&filter={{ filter_val }}">Previous</a></li>
+    {% endif %}
+    {% for p in detections.iter_pages() %}
+      {% if p %}
+        <li class="page-item {% if p==detections.page %}active{% endif %}">
+          <a class="page-link" href="?page={{ p }}&search={{ search }}&filter={{ filter_val }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+      {% endif %}
+    {% endfor %}
+    {% if detections.has_next %}
+    <li class="page-item"><a class="page-link" href="?page={{ detections.next_num }}&search={{ search }}&filter={{ filter_val }}">Next</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detection Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3 d-flex gap-3 align-items-center">
+          <span id="modalPred" class="pred-badge"></span>
+          <span>Confidence: <strong id="modalConf"></strong></span>
+          <span class="ms-auto text-muted" id="modalDate"></span>
+        </div>
+        <p class="fw-500">Full Article:</p>
+        <div id="modalFull" class="modal-article-text"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.querySelectorAll('.view-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.getElementById('modalPred').textContent  = btn.dataset.pred;
+    document.getElementById('modalPred').className    = `pred-badge pred-${btn.dataset.pred.toLowerCase()}`;
+    document.getElementById('modalConf').textContent  = btn.dataset.conf+'%';
+    document.getElementById('modalDate').textContent  = btn.dataset.date;
+    document.getElementById('modalFull').textContent  = btn.dataset.full || btn.dataset.snippet;
+  });
+});
+</script>
+{% endblock %}

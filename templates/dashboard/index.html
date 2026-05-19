@@ -1,0 +1,202 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Dashboard – FakeNews Detector{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4">
+  <h1 class="page-title" style="color:#000;">Dashboard</h1>
+  <p class="page-sub">Welcome back, <strong>{{ current_user.full_name }}</strong>!</p>
+</div>
+
+<!-- STAT CARDS -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="stat-card-dash">
+      <div class="stat-card-top">
+        <span class="stat-card-lbl">Total Analyzed</span>
+        <span class="stat-card-period">All time</span>
+      </div>
+      <div class="stat-card-bottom">
+        <span class="stat-card-num" id="sc-total">{{ stats.total_detections }}</span>
+        <div class="stat-card-icon"><i class="fa-regular fa-newspaper"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card-dash">
+      <div class="stat-card-top">
+        <span class="stat-card-lbl">Fake Detected</span>
+        <span class="stat-card-period">All articles</span>
+      </div>
+      <div class="stat-card-bottom">
+        <span class="stat-card-num" id="sc-fake">{{ stats.fake_count }}</span>
+        <div class="stat-card-icon"><i class="fa-regular fa-circle-xmark"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card-dash">
+      <div class="stat-card-top">
+        <span class="stat-card-lbl">Real Verified</span>
+        <span class="stat-card-period">All articles</span>
+      </div>
+      <div class="stat-card-bottom">
+        <span class="stat-card-num" id="sc-real">{{ stats.real_count }}</span>
+        <div class="stat-card-icon"><i class="fa-regular fa-circle-check"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card-dash">
+      <div class="stat-card-top">
+        <span class="stat-card-lbl">Registered Users</span>
+        <!-- <span class="stat-card-period">Platform total</span> -->
+      </div>
+      <div class="stat-card-bottom">
+        <span class="stat-card-num" id="sc-users">{{ stats.user_count }}</span>
+        <div class="stat-card-icon"><i class="fa-regular fa-user"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="row g-3 mb-4">
+  <div class="col-md-5 d-flex">
+    <div class="dash-card w-100">
+      <div class="dash-card-header">Fake vs Real Distribution</div>
+      <div class="dash-card-body chart-wrap">
+        <canvas id="doughnutChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7 d-flex">
+    <div class="dash-card w-100">
+      <div class="dash-card-header">Last 7 Days Detections</div>
+      <div class="dash-card-body chart-wrap">
+        <canvas id="weeklyBarChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT DETECTIONS TABLE -->
+<div class="dash-card mb-4">
+  <div class="dash-card-header d-flex justify-content-between align-items-center">
+    <span>Recent Detections</span>
+    <a href="{{ url_for('dashboard.history') }}" class="btn btn-sm btn-outline-navy">View All</a>
+  </div>
+  <div class="dash-card-body p-0">
+    <div class="table-responsive">
+      <table class="table dash-table mb-0">
+        <thead>
+          <tr><th>#</th><th>Article Preview</th><th>Prediction</th><th>Confidence</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {% for d in recent_detections.items %}
+          <tr>
+            <td>{{ loop.index + (recent_detections.page - 1) * recent_detections.per_page }}</td>
+            <td class="text-truncate" style="max-width:300px">{{ d.article_snippet or '—' }}</td>
+            <td>
+              <span class="pred-badge pred-{{ d.prediction | lower }}">{{ d.prediction }}</span>
+            </td>
+            <td>{{ (d.confidence * 100) | round(1) }}%</td>
+            <td>{{ d.detected_at.strftime('%b %d, %Y') }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No detections yet. <a href="{{ url_for('dashboard.detect') }}">Try detecting one!</a></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Table footer: showing info + pagination -->
+    <div class="table-footer">
+      <span>
+        {% if recent_detections.total == 0 %}
+          No entries
+        {% else %}
+          Showing {{ (recent_detections.page - 1) * recent_detections.per_page + 1 }}
+          to {{ [recent_detections.page * recent_detections.per_page, recent_detections.total] | min }}
+          of {{ recent_detections.total }} entries
+        {% endif %}
+      </span>
+      {% if recent_detections.pages > 1 %}
+      <ul class="pagination mb-0">
+        <li class="page-item {% if not recent_detections.has_prev %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ recent_detections.prev_num }}">&laquo;</a>
+        </li>
+        {% for p in recent_detections.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == recent_detections.page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not recent_detections.has_next %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ recent_detections.next_num }}">&raquo;</a>
+        </li>
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="quick-action-card text-center">
+      <div class="quick-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+      <h5>Detect News Now</h5>
+      <p>Paste an article and get an instant AI verdict.</p>
+      <a href="{{ url_for('dashboard.detect') }}" class="btn btn-orange-full w-100">Detect Now</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="quick-action-card text-center">
+      <div class="quick-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+      <h5>View History</h5>
+      <p>Browse all your past detection results.</p>
+      <a href="{{ url_for('dashboard.history') }}" class="btn btn-orange-full w-100">View History</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="quick-action-card text-center">
+      <div class="quick-icon"><i class="fa-solid fa-file-lines"></i></div>
+      <h5>Generate Report</h5>
+      <p>Export your detections as CSV or PDF.</p>
+      <a href="{{ url_for('dashboard.reports') }}" class="btn btn-orange-full w-100">Reports</a>
+    </div>
+  </div>
+</div> -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+fetch('/dashboard/api/analytics')
+  .then(r=>r.json())
+  .then(data=>{
+    // Doughnut
+    new Chart(document.getElementById('doughnutChart'),{
+      type:'doughnut',
+      data:{
+        labels:['Fake','Real','Other'],
+        datasets:[{data:[data.fake_count,data.real_count,data.uncertain_count],
+          backgroundColor:['#274665','#C4CDD5','#f39c12'],borderWidth:2}]
+      },
+      options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+    });
+    // Bar
+    new Chart(document.getElementById('weeklyBarChart'),{
+      type:'bar',
+      data:{
+        labels:data.weekly_counts.map(d=>d.date),
+        datasets:[{label:'Detections',data:data.weekly_counts.map(d=>d.count),
+          backgroundColor:'#Ff6600',borderRadius:4}]
+      },
+      options:{responsive:true,plugins:{legend:{display:false}},
+        scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Detect Fake News – Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4">
+  <h1 class="page-title" style="color:#000; font-size:1.6rem;">Detect Fake News</h1>
+  <p class="page-sub">Paste a full news article below and our AI will analyse it instantly.</p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-11">
+
+    <div class="dash-card">
+      <div class="dash-card-header">Article Analysis</div>
+      <div class="dash-card-body">
+        <form id="detectForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="mb-3">
+            <label class="form-label fw-500">News Article Text</label>
+            <textarea id="articleText" name="article_text" class="form-control detect-textarea"
+              placeholder="Paste your full news article here... (minimum 20 words)" rows="10"></textarea>
+            <div class="d-flex justify-content-between mt-1">
+              <small class="text-muted" id="wordCounter">0 words | 0 characters</small>
+              <small class="text-muted">Minimum 20 words required</small>
+            </div>
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-orange-full" id="analyzeBtn">
+              <i class="fa-solid fa-shield-halved me-2"></i>Analyze Article
+            </button>
+          </div>
+        </form>
+
+        <!-- INLINE ERROR FLASH -->
+        <div id="detectError" class="flash-message flash-danger justify-content-between align-items-center mt-3" style="display:none">
+          <span><i class="fa-solid fa-triangle-exclamation me-2"></i><span id="detectErrorMsg">An error occurred. Please try again.</span></span>
+          <button class="flash-close" onclick="document.getElementById('detectError').style.display='none'">&times;</button>
+        </div>
+
+        <!-- RESULTS PANEL (inline, below textarea) -->
+        <div id="resultsPanel" style="display:none; margin-top:2rem;">
+          <hr style="border-color:#e8eef3; margin-bottom:2rem;">
+          <div class="dash-card-header" style="padding:0 0 1rem 0; border:none;">Analysis Results</div>
+
+          <div class="row align-items-center g-4">
+            <!-- Verdict badge -->
+            <div class="col-md-4 text-center">
+              <div id="predBadgeWrap">
+                <span id="predBadge" class="result-badge result-badge-lg"></span>
+              </div>
+            </div>
+            <!-- Confidence + message -->
+            <div class="col-md-8">
+              <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="fw-500" style="font-size:1.3rem;">Confidence Score</span>
+                  <span id="confText" class="fw-700" style="font-size:1.3rem;"></span>
+                </div>
+                <div class="progress" style="height:10px;border-radius:6px">
+                  <div id="confBar" class="progress-bar" role="progressbar" style="background:#ff6600;border-radius:6px;width:0%;transition:width 0.8s ease"></div>
+                </div>
+              </div>
+              <p id="resultMessage" class="result-message mb-0"></p>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 justify-content-end mt-4">
+            <button class="btn btn-outline-secondary" id="analyzeAnotherBtn">
+              <i class="fa-solid fa-rotate-left me-1"></i>Analyze Another
+            </button>
+            <a href="{{ url_for('dashboard.records') }}" class="btn btn-navy">
+              <i class="fa-solid fa-clock-rotate-left me-1"></i>View History
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const textarea   = document.getElementById('articleText');
+const counter    = document.getElementById('wordCounter');
+const form       = document.getElementById('detectForm');
+const resultsPanel = document.getElementById('resultsPanel');
+const analyzeBtn   = document.getElementById('analyzeBtn');
+let isSubmitting   = false;
+
+textarea.addEventListener('input',()=>{
+  const txt = textarea.value;
+  const words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+  counter.textContent = `${words} words | ${txt.length} characters`;
+});
+
+form.addEventListener('submit', async e=>{
+  e.preventDefault();
+  if (isSubmitting) return;
+  isSubmitting = true;
+  analyzeBtn.disabled = true;
+  analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing...';
+  resultsPanel.style.display = 'none';
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+  const body = new FormData(form);
+
+  try {
+    const res  = await fetch('/dashboard/detect', {method:'POST', headers:{'X-CSRFToken':csrfToken}, body});
+    const data = await res.json();
+
+    const badge   = document.getElementById('predBadge');
+    const confBar = document.getElementById('confBar');
+    const confTxt = document.getElementById('confText');
+    const msg     = document.getElementById('resultMessage');
+
+    const icons = {Fake:'<i class="fa-solid fa-circle-xmark"></i>',Real:'<i class="fa-solid fa-circle-check"></i>',Uncertain:'<i class="fa-solid fa-triangle-exclamation"></i>',Invalid:'<i class="fa-solid fa-ban"></i>',Error:'<i class="fa-solid fa-ban"></i>'};
+    const errorBox = document.getElementById('detectError');
+    const errorMsg = document.getElementById('detectErrorMsg');
+
+    errorBox.style.display = 'none';
+
+    if (data.prediction === 'Error' || data.prediction === 'Invalid') {
+      errorMsg.textContent = data.message || 'Could not analyze article. Please try again.';
+      errorBox.style.display = 'flex';
+      resultsPanel.style.display = 'none';
+    } else {
+      errorBox.style.display = 'none';
+      badge.innerHTML = `${icons[data.prediction]||''} ${data.prediction}`;
+      badge.className = `result-badge result-${(data.prediction||'').toLowerCase()}`;
+
+      const pct = Math.round((data.confidence||0)*100);
+      confBar.style.width  = pct+'%';
+      confTxt.textContent  = pct+'%';
+      msg.textContent      = data.message||'';
+
+      resultsPanel.style.display = 'block';
+      resultsPanel.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
+
+  } catch(err) {
+    const errorBox = document.getElementById('detectError');
+    const errorMsg = document.getElementById('detectErrorMsg');
+    errorMsg.textContent = 'An error occurred. Please try again.';
+    errorBox.style.display = 'flex';
+    errorBox.scrollIntoView({behavior:'smooth', block:'center'});
+    resultsPanel.style.display = 'none';
+  } finally {
+    isSubmitting = false;
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = '<i class="fa-solid fa-shield-halved me-2"></i>Analyze Article';
+  }
+});
+
+document.getElementById('analyzeAnotherBtn').addEventListener('click',()=>{
+  textarea.value = '';
+  counter.textContent = '0 words | 0 characters';
+  resultsPanel.style.display = 'none';
+  textarea.focus();
+});
+</script>
+{% endblock %}

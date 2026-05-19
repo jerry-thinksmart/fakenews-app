@@ -1,0 +1,97 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Model Management – Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4">
+  <h1 class="page-title">Model Management</h1>
+  <p class="page-sub">Information about the deployed fake news detection model</p>
+</div>
+
+<!-- Model Info + Metrics -->
+<div class="row g-3 mb-4">
+  <!-- Left: Model Info -->
+  <div class="col-md-6">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">Model Information</div>
+      <div class="dash-card-body">
+        <table class="table table-borderless model-info-table mb-0">
+          <tbody>
+            <tr>
+              <td class="fw-500"><i class="fa-solid fa-robot me-2 text-orange"></i>Name</td>
+              <td>{{ model_info.name }}</td>
+            </tr>
+            <tr>
+              <td class="fw-500"><i class="fa-solid fa-file-code me-2 text-orange"></i>Model File</td>
+              <td><code>{{ model_info.file }}</code></td>
+            </tr>
+            <tr>
+              <td class="fw-500"><i class="fa-solid fa-file-lines me-2 text-orange"></i>Vectorizer</td>
+              <td><code>tfidf_vectorizer.pkl</code></td>
+            </tr>
+            <tr>
+              <td class="fw-500"><i class="fa-solid fa-chart-line me-2 text-orange"></i>Status</td>
+              <td><span class="badge bg-success">Active</span></td>
+            </tr>
+            <tr>
+              <td class="fw-500"><i class="fa-solid fa-clock-rotate-left me-2 text-orange"></i>Last Modified</td>
+              <td>{{ model_info.last_modified }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Performance Metrics -->
+  <div class="col-md-6">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">Performance Metrics</div>
+      <div class="dash-card-body">
+        {% set metrics = [
+          ('Accuracy',  model_info.accuracy),
+          ('Precision', model_info.precision),
+          ('Recall',    model_info.recall),
+          ('F1 Score',  model_info.f1)
+        ] %}
+        {% for label, value in metrics %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="fw-500">{{ label }}</span>
+            <span class="fw-700 text-orange">{{ value }}%</span>
+          </div>
+          <div class="progress" style="height:10px;border-radius:5px">
+            <div class="progress-bar metric-bar" role="progressbar"
+              data-value="{{ value }}"
+              style="background:#Ff6600;border-radius:5px;width:0%;transition:width 1s ease">
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Description -->
+<div class="dash-card">
+  <div class="dash-card-header">About the Model</div>
+  <div class="dash-card-body">
+    <p><strong>Logistic Regression</strong> is a supervised machine learning algorithm used for binary classification. In this application it classifies news articles as either <em>Fake</em> or <em>Real</em>.</p>
+    <p><strong>TF-IDF (Term Frequency–Inverse Document Frequency)</strong> is used to convert raw article text into numerical feature vectors. Words that appear frequently in one article but rarely across all articles receive higher scores, highlighting distinguishing vocabulary.</p>
+    <p>The text pre-processing pipeline includes lowercasing, URL removal, non-alphabetic character stripping, English stopword removal, and lemmatization via NLTK’s WordNetLemmatizer. This results in clean, informative tokens that the TF-IDF vectorizer encodes into high-dimensional feature spaces.</p>
+    <p>The model was trained on a balanced dataset of verified real and fake news articles, achieving <strong>98.2% accuracy</strong> on the held-out test set.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Animate progress bars
+window.addEventListener('load', ()=>{
+  document.querySelectorAll('.metric-bar').forEach(bar=>{
+    const val = parseFloat(bar.dataset.value);
+    setTimeout(()=>{ bar.style.width = val+'%'; }, 200);
+  });
+});
+</script>
+{% endblock %}

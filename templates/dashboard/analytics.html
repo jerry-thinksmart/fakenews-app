@@ -1,0 +1,106 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Analytics – Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4">
+  <h1 class="page-title">Analytics</h1>
+  <p class="page-sub">Insights into your fake news detection activity</p>
+</div>
+
+<!-- Row 1: Doughnut + Weekly Bar -->
+<div class="row g-3 mb-4">
+  <div class="col-md-5">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">Fake vs Real Distribution</div>
+      <div class="dash-card-body chart-wrap"><canvas id="aDonut"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">Weekly Detections (Last 7 Days)</div>
+      <div class="dash-card-body chart-wrap"><canvas id="aWeekly"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2: 30-day Line + Confidence Horizontal Bar -->
+<div class="row g-3 mb-4">
+  <div class="col-md-7">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">30-Day Trend</div>
+      <div class="dash-card-body chart-wrap"><canvas id="aLine"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">Confidence Ranges</div>
+      <div class="dash-card-body chart-wrap"><canvas id="aConfBar"></canvas></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+fetch('/dashboard/api/analytics')
+  .then(r=>r.json())
+  .then(data=>{
+
+    // Doughnut
+    new Chart(document.getElementById('aDonut'),{
+      type:'doughnut',
+      data:{labels:['Fake','Real','Other'],
+        datasets:[{data:[data.fake_count,data.real_count,data.uncertain_count],
+          backgroundColor:['#274665','#C4CDD5','#f39c12'],borderWidth:2}]},
+      options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+    });
+
+    // Weekly bar
+    new Chart(document.getElementById('aWeekly'),{
+      type:'bar',
+      data:{labels:data.weekly_counts.map(d=>d.date),
+        datasets:[{label:'Detections',data:data.weekly_counts.map(d=>d.count),
+          backgroundColor:'#Ff6600',borderRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false}},
+        scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+    });
+
+    // 30-day line
+    new Chart(document.getElementById('aLine'),{
+      type:'line',
+      data:{labels:data.daily_counts.map(d=>d.date),
+        datasets:[
+          {label:'Fake',data:data.daily_counts.map(d=>d.fake),borderColor:'#e74c3c',tension:0.3,fill:false},
+          {label:'Real',data:data.daily_counts.map(d=>d.real),borderColor:'#27ae60',tension:0.3,fill:false},
+          {label:'Total',data:data.daily_counts.map(d=>d.count),borderColor:'#274665',tension:0.3,fill:false}
+        ]},
+      options:{responsive:true,plugins:{legend:{position:'bottom'}},
+        scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+    });
+
+    // Confidence horizontal bar
+    new Chart(document.getElementById('aConfBar'),{
+      type:'bar',
+      data:{labels:['High (>85%)','Medium (60-85%)','Low (<60%)'],
+        datasets:[{data:[data.confidence_ranges.high,data.confidence_ranges.medium,data.confidence_ranges.low],
+          backgroundColor:['#C4CDD5','#f39c12','#274665'],borderRadius:4}]},
+      options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},
+        scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}}
+    });
+
+    // Info cards
+    const daily = data.daily_counts;
+    const totals= daily.map(d=>d.count);
+    const total = totals.reduce((a,b)=>a+b,0);
+    const avgC  = total > 0 ? Math.round(((data.confidence_ranges.high*92+data.confidence_ranges.medium*72+data.confidence_ranges.low*40)/(data.total||1))) : 0;
+    document.getElementById('avgConf').textContent = (data.total>0) ? avgC+'%' : '—';
+
+    const maxIdx = totals.indexOf(Math.max(...totals));
+    document.getElementById('mostActiveDay').textContent = daily[maxIdx]?.date || '—';
+
+    const now = new Date();
+    const thisMonth = daily.filter(d=>d.date.startsWith(now.toISOString().slice(0,7))).reduce((a,b)=>a+b.count,0);
+    document.getElementById('monthTotal').textContent = thisMonth;
+  });
+</script>
+{% endblock %}

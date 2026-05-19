@@ -1,0 +1,284 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Subscribers – Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  #dashMain { background: #e8eef5; }
+  .sub-wrap { font-size: 8px; }
+  .sub-wrap .form-label    { font-size: 1.3rem; }
+  .sub-wrap .form-control  { font-size: 1.3rem; padding: 7px 10px; }
+  .sub-wrap .btn           { font-size: 1.3rem; }
+  .sub-wrap .dash-card-header { font-size: 1.2rem; }
+  .sub-wrap table          { font-size: 1.25rem; }
+  .sub-wrap .badge         { font-size: 1.1rem; }
+  .sub-compose textarea    { min-height: 160px; resize: vertical; }
+  .select-all-row          { background: #f0f4f8; }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="sub-wrap">
+
+<div class="page-header mb-4">
+  <h1 class="page-title" style="color:#000; font-size:1.6rem;">Subscribers</h1>
+  <p class="page-sub">Manage newsletter subscribers and send bulk messages.</p>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="dash-card text-center py-3">
+      <div style="font-size:2.5rem;font-weight:700;color:#274665;">{{ subscribers|length }}</div>
+      <div style="font-size:1.2rem;color:#666;">Total</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="dash-card text-center py-3">
+      <div style="font-size:2.5rem;font-weight:700;color:#274665;">{{ subscribers|selectattr('is_active')|list|length }}</div>
+      <div style="font-size:1.2rem;color:#666;">Active</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Subscriber List -->
+  <div class="col-lg-7">
+    <div class="dash-card h-100">
+      <div class="dash-card-header d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-users me-2"></i>Subscriber List</span>
+        <!-- Search -->
+        <form method="GET" action="{{ url_for('dashboard.subscribers') }}" class="d-flex gap-2">
+          <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
+                 placeholder="Search email…" style="font-size:1.2rem;padding:4px 8px;width:180px;" />
+          <button class="btn btn-sm btn-orange-full" style="font-size:1.2rem;padding:4px 10px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </form>
+      </div>
+      <div class="dash-card-body p-0">
+        <form method="POST" action="{{ url_for('dashboard.subscribers') }}" id="subscriberForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" id="formAction" value="delete" />
+
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" style="font-size:1.2rem;">
+              <thead>
+                <tr style="background:#f0f4f8;">
+                  <th style="width:40px;padding:10px 12px;">
+                    <input type="checkbox" id="selectAll" title="Select all" />
+                  </th>
+                  <th style="padding:10px 12px;">#</th>
+                  <th style="padding:10px 12px;">Email</th>
+                  <th style="padding:10px 12px;">Phone</th>
+                  <th style="padding:10px 12px;">Status</th>
+                  <th style="padding:10px 12px;">Subscribed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sub in subscribers %}
+                <tr>
+                  <td style="padding:9px 12px;">
+                    <input type="checkbox" name="subscriber_ids" value="{{ sub.id }}" class="sub-check" />
+                  </td>
+                  <td style="padding:9px 12px;">{{ loop.index }}</td>
+                  <td style="padding:9px 12px;">{{ sub.email }}</td>
+                  <td style="padding:9px 12px;">{{ sub.phone or '—' }}</td>
+                  <td style="padding:9px 12px;">
+                    {% if sub.is_active %}
+                      <span class="badge" style="background:#274665;color:#fff;">Active</span>
+                    {% else %}
+                      <span class="badge" style="background:#C4CDD5;color:#333;">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td style="padding:9px 12px;">{{ sub.subscribed_at.strftime('%d %b %Y') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="6" class="text-center py-4" style="color:#999;">
+                    No subscribers yet. Share your website so people can subscribe!
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% if subscribers %}
+          <div class="d-flex gap-2 p-3" style="border-top:1px solid #e5e9f0;">
+            <button type="button" class="btn btn-sm btn-orange-full" id="sendEmailBtn"
+                    style="font-size:1.2rem;" title="Send email to selected subscribers">
+              <i class="fa-solid fa-envelope me-1"></i>Email Selected
+            </button>
+            <button type="button" class="btn btn-sm btn-orange-full" id="sendSmsBtn"
+                    style="font-size:1.2rem;" title="Send SMS to selected subscribers">
+              <i class="fa-solid fa-comment-sms me-1"></i>SMS Selected
+            </button>
+            <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:1.2rem;"
+                    onclick="return confirm('Remove selected subscribers?')">
+              <i class="fa-solid fa-trash me-1"></i>Remove Selected
+            </button>
+          </div>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compose Email -->
+  <div class="col-lg-5">
+    <div class="dash-card h-100 sub-compose" id="composeCard" style="display:none;">
+      <div class="dash-card-header">
+        <i class="fa-solid fa-paper-plane me-2"></i>Compose Email
+      </div>
+      <div class="dash-card-body">
+        <form method="POST" action="{{ url_for('dashboard.subscribers') }}" id="emailForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="send_email" />
+          <!-- hidden subscriber_ids injected by JS -->
+          <div id="hiddenIds"></div>
+
+          <div class="mb-3">
+            <label class="form-label">Subject</label>
+            <input type="text" name="subject" class="form-control" required
+                   placeholder="Email subject…" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Message</label>
+            <textarea name="body" class="form-control" required
+                      placeholder="Write your message here…"></textarea>
+          </div>
+          <div class="mb-3" id="recipientCount" style="font-size:1.2rem;color:#666;"></div>
+
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary" id="cancelCompose">Cancel</button>
+            <button type="submit" class="btn btn-orange-full">
+              <i class="fa-solid fa-paper-plane me-2"></i>Send
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- SMS Compose card -->
+    <div class="dash-card sub-compose" id="smsCard" style="display:none;">
+      <div class="dash-card-header">
+        <i class="fa-solid fa-comment-sms me-2"></i>Compose SMS
+      </div>
+      <div class="dash-card-body">
+        <form method="POST" action="{{ url_for('dashboard.subscribers') }}" id="smsForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="send_sms" />
+          <div id="smsHiddenIds"></div>
+
+          <div class="mb-3">
+            <label class="form-label">Message <span style="color:#888;font-size:1.1rem;">(max 160 chars for one SMS segment)</span></label>
+            <textarea name="sms_body" id="smsBody" class="form-control" required maxlength="320"
+                      placeholder="Write your SMS message here…"
+                      style="min-height:120px;resize:vertical;"></textarea>
+            <div id="smsCharCount" style="font-size:1.1rem;color:#888;text-align:right;margin-top:4px;">0 / 160</div>
+          </div>
+          <div class="mb-3" id="smsRecipientCount" style="font-size:1.2rem;color:#666;"></div>
+
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary" id="cancelSms">Cancel</button>
+            <button type="submit" class="btn btn-orange-full">
+              <i class="fa-solid fa-comment-sms me-2"></i>Send SMS
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Placeholder card shown when neither compose panel is open -->
+    <div class="dash-card" id="placeholderCard">
+      <div class="dash-card-header">
+        <i class="fa-solid fa-paper-plane me-2"></i>Messaging
+      </div>
+      <div class="dash-card-body">
+        <p style="font-size:1.3rem;color:#555;">
+          Select subscribers from the list, then click <strong>Email Selected</strong> or <strong>SMS Selected</strong> to compose and send a bulk message.
+        </p>
+        <p style="font-size:1.2rem;color:#888;">
+          Subscribers need a phone number saved to receive SMS. Collect phone numbers via the subscribe form or update them directly in the database.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /.sub-wrap -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const selectAll       = document.getElementById('selectAll');
+const checkboxes      = document.querySelectorAll('.sub-check');
+const sendEmailBtn    = document.getElementById('sendEmailBtn');
+const sendSmsBtn      = document.getElementById('sendSmsBtn');
+const composeCard     = document.getElementById('composeCard');
+const smsCard         = document.getElementById('smsCard');
+const placeholderCard = document.getElementById('placeholderCard');
+const cancelCompose   = document.getElementById('cancelCompose');
+const cancelSms       = document.getElementById('cancelSms');
+const hiddenIds       = document.getElementById('hiddenIds');
+const smsHiddenIds    = document.getElementById('smsHiddenIds');
+const recCount        = document.getElementById('recipientCount');
+const smsRecCount     = document.getElementById('smsRecipientCount');
+const smsBody         = document.getElementById('smsBody');
+const smsCharCount    = document.getElementById('smsCharCount');
+
+selectAll && selectAll.addEventListener('change', () => {
+  checkboxes.forEach(cb => cb.checked = selectAll.checked);
+});
+
+function getSelected() {
+  return [...checkboxes].filter(cb => cb.checked).map(cb => cb.value);
+}
+
+function injectIds(container, ids) {
+  container.innerHTML = '';
+  ids.forEach(id => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = 'subscriber_ids';
+    inp.value = id;
+    container.appendChild(inp);
+  });
+}
+
+function showOnly(card) {
+  composeCard.style.display     = card === 'email'       ? 'block' : 'none';
+  smsCard.style.display         = card === 'sms'         ? 'block' : 'none';
+  placeholderCard.style.display = card === 'placeholder' ? 'block' : 'none';
+}
+
+sendEmailBtn && sendEmailBtn.addEventListener('click', () => {
+  const sel = getSelected();
+  if (sel.length === 0) { alert('Please select at least one subscriber first.'); return; }
+  injectIds(hiddenIds, sel);
+  recCount.textContent = `Sending to ${sel.length} subscriber(s)…`;
+  showOnly('email');
+  composeCard.scrollIntoView({ behavior: 'smooth' });
+});
+
+cancelCompose && cancelCompose.addEventListener('click', () => showOnly('placeholder'));
+
+sendSmsBtn && sendSmsBtn.addEventListener('click', () => {
+  const sel = getSelected();
+  if (sel.length === 0) { alert('Please select at least one subscriber first.'); return; }
+  injectIds(smsHiddenIds, sel);
+  smsRecCount.textContent = `Sending to ${sel.length} subscriber(s)…`;
+  showOnly('sms');
+  smsCard.scrollIntoView({ behavior: 'smooth' });
+});
+
+cancelSms && cancelSms.addEventListener('click', () => showOnly('placeholder'));
+
+smsBody && smsBody.addEventListener('input', () => {
+  const len = smsBody.value.length;
+  smsCharCount.textContent = `${len} / 160`;
+  smsCharCount.style.color = len > 160 ? '#dc3545' : '#888';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base_dashboard.html" %}
+{% block title %}System Logs – Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4">
+  <h1 class="page-title">System Logs</h1>
+  <p class="page-sub">Activity and security audit trail</p>
+</div>
+
+<!-- Filter row -->
+<form method="GET" class="row g-2 mb-4 align-items-stretch">
+  <div class="col-sm-4">
+    <select name="level" class="form-select h-100" style="font-size:1.3rem;">
+      <option value="" {% if not level %}selected{% endif %}>All Levels</option>
+      <option value="INFO" {% if level=='INFO' %}selected{% endif %}>INFO</option>
+      <option value="WARNING" {% if level=='WARNING' %}selected{% endif %}>WARNING</option>
+      <option value="ERROR" {% if level=='ERROR' %}selected{% endif %}>ERROR</option>
+    </select>
+  </div>
+  <div class="col-sm-2 d-flex">
+    <button type="submit" class="btn btn-orange-full w-100" style="font-size:1.3rem; padding:6px 12px;">Filter</button>
+  </div>
+</form>
+
+<div class="dash-card">
+  <div class="dash-card-body p-0">
+    <div class="table-responsive">
+      <table class="table dash-table mb-0" style="font-size:9px;">
+        <thead>
+          <tr><th>#</th><th>User</th><th>Action</th><th>IP Address</th><th>Level</th><th>Timestamp</th></tr>
+        </thead>
+        <tbody>
+          {% for log in log_entries.items %}
+          <tr>
+            <td>{{ loop.index + (log_entries.page-1)*log_entries.per_page }}</td>
+            <td>
+              {% if log.user %}
+                <span class="text-navy">{{ log.user.username }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td style="max-width:350px" class="text-truncate">{{ log.action }}</td>
+            <td><code style="white-space:nowrap;">{{ log.ip_address or '—' }}</code></td>
+            <td>
+              {% if log.level == 'INFO' %}
+                <span class="badge" style="background:#C4CDD5; color:#333;">INFO</span>
+              {% elif log.level == 'WARNING' %}
+                <span class="badge bg-warning text-dark">WARNING</span>
+              {% elif log.level == 'ERROR' %}
+                <span class="badge bg-danger">ERROR</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ log.level }}</span>
+              {% endif %}
+            </td>
+            <td><small>{{ log.timestamp.strftime('%b %d, %Y %H:%M:%S') }}</small></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-5">No logs found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if log_entries.pages > 1 %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% if log_entries.has_prev %}
+    <li class="page-item"><a class="page-link" href="?page={{ log_entries.prev_num }}&level={{ level }}">&laquo;</a></li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+    {% endif %}
+    {% for p in log_entries.iter_pages() %}
+      {% if p %}
+        <li class="page-item {% if p==log_entries.page %}active{% endif %}">
+          <a class="page-link" href="?page={{ p }}&level={{ level }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+      {% endif %}
+    {% endfor %}
+    {% if log_entries.has_next %}
+    <li class="page-item"><a class="page-link" href="?page={{ log_entries.next_num }}&level={{ level }}">&raquo;</a></li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

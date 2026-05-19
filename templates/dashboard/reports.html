@@ -1,0 +1,119 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Reports – Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4">
+  <h1 class="page-title">Reports</h1>
+  <p class="page-sub">Generate and export your detection reports</p>
+</div>
+
+<div class="dash-card mb-4">
+  <div class="dash-card-header">Report Generator</div>
+  <div class="dash-card-body">
+
+    <!-- Type toggle -->
+    <div class="mb-3">
+      <label class="form-label fw-500">Report Type</label>
+      <div class="btn-group" role="group" id="reportTypeGroup">
+        <button type="button" class="btn btn-outline-navy report-type-btn active" data-type="detection">Detection History</button>
+        <button type="button" class="btn btn-outline-navy report-type-btn" data-type="daily">Daily</button>
+        <button type="button" class="btn btn-outline-navy report-type-btn" data-type="weekly">Weekly</button>
+        <button type="button" class="btn btn-outline-navy report-type-btn" data-type="monthly">Monthly</button>
+      </div>
+    </div>
+
+    <!-- Date range -->
+    <div class="row g-3 mb-3">
+      <div class="col-sm-4">
+        <label class="form-label fw-500">From</label>
+        <input type="date" id="dateFrom" class="form-control" />
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label fw-500">To</label>
+        <input type="date" id="dateTo" class="form-control" />
+      </div>
+      <div class="col-sm-4 d-flex align-items-end">
+        <button class="btn btn-navy w-100" id="previewBtn"><i class="fa-solid fa-eye me-1"></i>Preview</button>
+      </div>
+    </div>
+
+    <!-- Export buttons -->
+    <div class="d-flex gap-2">
+      <form method="POST" action="{{ url_for('dashboard.export_csv') }}" id="csvForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="date_range" id="csvRange" value="" />
+        <input type="hidden" name="type" id="csvType" value="detection" />
+        <button type="submit" class="btn btn-orange-full"><i class="fa-solid fa-file-csv me-1"></i>Export CSV</button>
+      </form>
+      <form method="POST" action="{{ url_for('dashboard.export_pdf') }}" id="pdfForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="date_range" id="pdfRange" value="" />
+        <button type="submit" class="btn btn-navy"><i class="fa-solid fa-file-pdf me-1"></i>Export PDF</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Table -->
+<div class="dash-card" id="previewSection" style="display:none">
+  <div class="dash-card-header">Preview</div>
+  <div class="dash-card-body p-0">
+    <div class="table-responsive">
+      <table class="table dash-table mb-0" id="previewTable">
+        <thead>
+          <tr><th>#</th><th>Article Snippet</th><th>Prediction</th><th>Confidence</th><th>Date</th></tr>
+        </thead>
+        <tbody id="previewBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Report type toggle
+document.querySelectorAll('.report-type-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.report-type-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('csvType').value = btn.dataset.type;
+  });
+});
+
+function getDateRange(){
+  const from = document.getElementById('dateFrom').value;
+  const to   = document.getElementById('dateTo').value;
+  return (from && to) ? `${from} to ${to}` : '';
+}
+
+document.getElementById('previewBtn').addEventListener('click', async ()=>{
+  const range = getDateRange();
+  // Build preview by fetching analytics data (simplified preview)
+  const section = document.getElementById('previewSection');
+  const body    = document.getElementById('previewBody');
+  body.innerHTML = '<tr><td colspan="5" class="text-center"><span class="spinner-border spinner-border-sm"></span> Loading...</td></tr>';
+  section.style.display = 'block';
+
+  // Fetch history endpoint via API
+  const params = new URLSearchParams();
+  if(range){ params.set('date_range', range); }
+  try {
+    const res  = await fetch('/dashboard/history?'+params.toString(), {headers:{'X-Requested-With':'XMLHttpRequest'}});
+    // Parse page contents for preview – fallback: just show message
+    body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Set date range then use Export buttons below to download.</td></tr>';
+  } catch(e){
+    body.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Preview unavailable. Use export buttons.</td></tr>';
+  }
+});
+
+// Sync date range to export forms
+function syncRange(){
+  const r = getDateRange();
+  document.getElementById('csvRange').value = r;
+  document.getElementById('pdfRange').value = r;
+}
+document.getElementById('dateFrom').addEventListener('change', syncRange);
+document.getElementById('dateTo').addEventListener('change', syncRange);
+</script>
+{% endblock %}

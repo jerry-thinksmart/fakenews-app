@@ -1,0 +1,156 @@
+{% extends "base_public.html" %}
+{% block title %}About – FakeNews Detector{% endblock %}
+
+{% block content %}
+
+<!-- Hero Banner -->
+<section class="about-hero">
+  <div class="about-hero-overlay"></div>
+  <div class="container position-relative text-center">
+    <h1 class="about-hero-title">About FakeNews Detector</h1>
+    <p class="about-hero-sub">Empowering people with AI to identify misinformation online</p>
+  </div>
+</section>
+
+<!-- Mission -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4 align-items-center">
+      <div class="col-md-7">
+        <h2 class="section-title">Our Mission</h2>
+        <p>FakeNews Detector was built to tackle the growing crisis of online misinformation. We use state-of-the-art machine learning to help individuals, journalists, and organizations quickly verify whether a news article is real or fake.</p>
+        <p>Our platform is trained on thousands of verified news articles, delivering over 98% accuracy so you can trust the results. We believe an informed public is a stronger society.</p>
+      </div>
+      <div class="col-md-5">
+        <div class="about-stats-card">
+          <div class="row text-center g-3">
+            <div class="col-6">
+              <div class="about-stat-num">98.2%</div>
+              <div class="about-stat-lbl">Accuracy</div>
+            </div>
+            <div class="col-6">
+              <div class="about-stat-num">97.8%</div>
+              <div class="about-stat-lbl">Precision</div>
+            </div>
+            <div class="col-6">
+              <div class="about-stat-num">98.6%</div>
+              <div class="about-stat-lbl">Recall</div>
+            </div>
+            <div class="col-6">
+              <div class="about-stat-num">98.2%</div>
+              <div class="about-stat-lbl">F1 Score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Technology -->
+<section class="py-5 bg-light">
+  <div class="container">
+    <h2 class="section-title text-center mb-5">Our Technology Stack</h2>
+    <div class="row g-4 justify-content-center">
+      {% set stack = [
+        ("<i class='fa-solid fa-calculator'></i>", "Logistic Regression", "A powerful linear classifier trained on labeled news datasets."),
+        ("<i class='fa-solid fa-ruler-combined'></i>", "TF-IDF Vectorizer", "Transforms raw text into meaningful numerical features."),
+        ("<i class='fa-solid fa-font'></i>", "NLTK Processing", "Tokenization, stopword removal, and lemmatization."),
+        ("<i class='fa-brands fa-python'></i>", "Flask Framework", "Lightweight Python web framework powering the backend.")
+      ] %}
+      {% for icon, title, desc in stack %}
+      <div class="col-6 col-md-3">
+        <div class="tech-card text-center">
+          <div class="tech-icon">{{ icon | safe }}</div>
+          <h5>{{ title }}</h5>
+          <p>{{ desc }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- How to Use -->
+<section class="how-to-use-section">
+  <div class="how-to-use-inner">
+    <div class="container">
+      <h2 class="section-title text-center mb-2">How to Use This Platform</h2>
+      <p class="text-center text-muted mb-5" style="font-size:1.5rem;">Get started in just a few simple steps</p>
+      <div class="row g-4 justify-content-center">
+        <div class="col-sm-6 col-md-3">
+          <div class="how-step-card text-center">
+            <div class="how-step-num">1</div>
+            <div class="how-step-icon"><i class="fa-solid fa-user-plus"></i></div>
+            <h5>Create an Account</h5>
+            <p>Register for a free account using your email address to get full access to the platform.</p>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="how-step-card text-center">
+            <div class="how-step-num">2</div>
+            <div class="how-step-icon"><i class="fa-solid fa-paste"></i></div>
+            <h5>Paste Your Article</h5>
+            <p>Copy and paste the news article or headline you want to verify into the detection box.</p>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="how-step-card text-center">
+            <div class="how-step-num">3</div>
+            <div class="how-step-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+            <h5>Analyze</h5>
+            <p>Click the <strong>Analyze</strong> button. Our AI processes the text in seconds using advanced ML models.</p>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="how-step-card text-center">
+            <div class="how-step-num">4</div>
+            <div class="how-step-icon"><i class="fa-solid fa-circle-check"></i></div>
+            <h5>View Results</h5>
+            <p>Instantly see whether the article is <strong>Real</strong> or <strong>Fake</strong> along with a confidence score.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Who Benefits -->
+<section class="py-5">
+  <div class="container">
+    <h2 class="section-title text-center mb-2">Who Can Benefit</h2>
+    <p class="text-center text-muted mb-5" style="font-size:1.5rem;">FakeNews Detector is built for everyone fighting misinformation</p>
+    <div class="row g-4 justify-content-center">
+      <div class="col-sm-6 col-md-3">
+        <div class="benefit-card text-center">
+          <div class="benefit-icon"><i class="fa-solid fa-newspaper"></i></div>
+          <h5>Journalists</h5>
+          <p>Quickly verify stories and sources before publication to maintain editorial integrity and public trust.</p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="benefit-card text-center">
+          <div class="benefit-icon"><i class="fa-solid fa-user-graduate"></i></div>
+          <h5>Students & Researchers</h5>
+          <p>Cross-check articles and citations for academic work, ensuring your research is grounded in verified facts.</p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="benefit-card text-center">
+          <div class="benefit-icon"><i class="fa-solid fa-users"></i></div>
+          <h5>General Public</h5>
+          <p>Stay informed and avoid sharing misleading content on social media by verifying news in seconds.</p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="benefit-card text-center">
+          <div class="benefit-icon"><i class="fa-solid fa-building"></i></div>
+          <h5>Organizations</h5>
+          <p>Protect your brand reputation by detecting and filtering fake news before it impacts your stakeholders.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

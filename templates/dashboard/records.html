@@ -1,0 +1,128 @@
+{% extends "base_dashboard.html" %}
+{% block title %}News Records – Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="page-header mb-4">
+  <h1 class="page-title" style="color:#000;">News Records</h1>
+  <p class="page-sub">All saved news articles from your detections</p>
+</div>
+
+<!-- Search + Filter -->
+<form method="GET" class="row g-2 mb-4 align-items-stretch">
+  <div class="col-sm-7">
+    <input type="text" name="search" class="form-control h-100" placeholder="Search records..." value="{{ search }}" />
+  </div>
+  <div class="col-sm-3">
+    <select name="filter" class="form-select h-100">
+      <option value="" {% if not filter_val %}selected{% endif %}>All</option>
+      <option value="Fake" {% if filter_val=='Fake' %}selected{% endif %}>Fake</option>
+      <option value="Real" {% if filter_val=='Real' %}selected{% endif %}>Real</option>
+    </select>
+  </div>
+  <div class="col-sm-2 d-flex">
+    <button type="submit" class="btn btn-orange-full w-100" style="font-size:1.3rem; padding:6px 12px;">Filter</button>
+  </div>
+</form>
+
+<div class="row g-3 mb-4">
+  {% for r in records.items %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="record-card">
+      <div class="record-card-header">
+        <span class="pred-badge pred-{{ r.prediction|lower }}">{{ r.prediction }}</span>
+        <span class="record-conf ms-2">{{ (r.confidence*100)|round(1) }}%</span>
+      </div>
+      <div class="record-card-body">
+        <p class="record-title">{{ r.title[:80] }}</p>
+        <small class="text-muted">{{ r.created_at.strftime('%b %d, %Y') }}</small>
+      </div>
+      <div class="record-card-footer d-flex gap-2">
+        <button class="btn btn-sm btn-outline-navy flex-fill view-record-btn"
+          data-title="{{ r.title }}"
+          data-content="{{ r.content }}"
+          data-pred="{{ r.prediction }}"
+          data-conf="{{ (r.confidence*100)|round(1) }}"
+          data-bs-toggle="modal" data-bs-target="#recordModal">
+          View Full
+        </button>
+        <button class="btn btn-sm btn-outline-danger flex-fill delete-record-btn"
+          data-id="{{ r.id }}">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center text-muted py-5">No records found.</div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if records.pages > 1 %}
+<nav>
+  <ul class="pagination justify-content-center">
+    {% if records.has_prev %}
+    <li class="page-item"><a class="page-link" href="?page={{ records.prev_num }}&search={{ search }}&filter={{ filter_val }}">Previous</a></li>
+    {% endif %}
+    {% for p in records.iter_pages() %}
+      {% if p %}
+        <li class="page-item {% if p==records.page %}active{% endif %}">
+          <a class="page-link" href="?page={{ p }}&search={{ search }}&filter={{ filter_val }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+      {% endif %}
+    {% endfor %}
+    {% if records.has_next %}
+    <li class="page-item"><a class="page-link" href="?page={{ records.next_num }}&search={{ search }}&filter={{ filter_val }}">Next</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+<!-- View Modal -->
+<div class="modal fade" id="recordModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="recordModalTitle">Article Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3 d-flex gap-3 align-items-center">
+          <span id="recModalPred" class="pred-badge"></span>
+          <span>Confidence: <strong id="recModalConf"></strong></span>
+        </div>
+        <div id="recModalContent" class="modal-article-text"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.querySelectorAll('.view-record-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.getElementById('recordModalTitle').textContent = btn.dataset.title;
+    document.getElementById('recModalPred').textContent    = btn.dataset.pred;
+    document.getElementById('recModalPred').className      = `pred-badge pred-${btn.dataset.pred.toLowerCase()}`;
+    document.getElementById('recModalConf').textContent    = btn.dataset.conf+'%';
+    document.getElementById('recModalContent').textContent = btn.dataset.content;
+  });
+});
+
+document.querySelectorAll('.delete-record-btn').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    if(!confirm('Delete this record permanently?')) return;
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const res  = await fetch(`/dashboard/records/${btn.dataset.id}`,{
+      method:'DELETE', headers:{'X-CSRFToken':csrf,'Content-Type':'application/json'}
+    });
+    if(res.ok) btn.closest('.col-12,col-md-6,col-xl-4').remove();
+    else alert('Delete failed.');
+    location.reload();
+  });
+});
+</script>
+{% endblock %}

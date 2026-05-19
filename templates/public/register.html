@@ -1,0 +1,127 @@
+{% extends "base_public.html" %}
+{% block title %}Register – FakeNews Detector{% endblock %}
+
+{% block content %}
+<section class="auth-section py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+
+        <div class="auth-card">
+          <div class="auth-card-accent"></div>
+          <div class="auth-card-body">
+            <h2 class="auth-heading">Create Account</h2>
+            <p class="auth-sub">Join thousands fighting fake news with AI</p>
+
+            <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+              {{ form.hidden_tag() }}
+
+              <!-- Full Name -->
+              <div class="mb-3">
+                <label class="form-label fw-500">{{ form.full_name.label.text }}</label>
+                {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""), placeholder="John Doe") }}
+                {% for err in form.full_name.errors %}
+                  <div class="invalid-feedback">{{ err }}</div>
+                {% endfor %}
+              </div>
+
+              <!-- Email -->
+              <div class="mb-3">
+                <label class="form-label fw-500">{{ form.email.label.text }}</label>
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com") }}
+                {% for err in form.email.errors %}
+                  <div class="invalid-feedback">{{ err }}</div>
+                {% endfor %}
+              </div>
+
+              <!-- Username -->
+              <div class="mb-3">
+                <label class="form-label fw-500">{{ form.username.label.text }}</label>
+                {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="cool_username") }}
+                {% for err in form.username.errors %}
+                  <div class="invalid-feedback">{{ err }}</div>
+                {% endfor %}
+              </div>
+
+              <!-- Password -->
+              <div class="mb-2">
+                <label class="form-label fw-500">{{ form.password.label.text }}</label>
+                <div class="input-group">
+                  {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), id="regPassword", placeholder="Min. 8 characters") }}
+                  <button type="button" class="btn btn-outline-secondary pw-toggle" data-target="regPassword">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                  {% for err in form.password.errors %}
+                    <div class="invalid-feedback d-block">{{ err }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Password strength bar -->
+              <div class="pw-strength-bar mb-3">
+                <div class="pw-seg" id="seg1"></div>
+                <div class="pw-seg" id="seg2"></div>
+                <div class="pw-seg" id="seg3"></div>
+                <div class="pw-seg" id="seg4"></div>
+              </div>
+
+              <!-- Confirm Password -->
+              <div class="mb-4">
+                <label class="form-label fw-500">{{ form.confirm_password.label.text }}</label>
+                <div class="input-group">
+                  {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), id="regConfirm", placeholder="Repeat password") }}
+                  <button type="button" class="btn btn-outline-secondary pw-toggle" data-target="regConfirm">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                  {% for err in form.confirm_password.errors %}
+                    <div class="invalid-feedback d-block">{{ err }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <button type="submit" class="btn auth-submit-btn w-100">Create Account &rarr;</button>
+            </form>
+
+            <p class="auth-switch mt-3 text-center">
+              Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Password show/hide
+document.querySelectorAll('.pw-toggle').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const inp = document.getElementById(btn.dataset.target);
+    const icon = btn.querySelector('i');
+    if(inp.type==='password'){ inp.type='text'; icon.classList.replace('bi-eye','bi-eye-slash'); }
+    else { inp.type='password'; icon.classList.replace('bi-eye-slash','bi-eye'); }
+  });
+});
+
+// Password strength
+const pwInput = document.getElementById('regPassword');
+const segs = [document.getElementById('seg1'),document.getElementById('seg2'),document.getElementById('seg3'),document.getElementById('seg4')];
+function calcStrength(pw){
+  let score=0;
+  if(pw.length>=8) score++;
+  if(/[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  return score;
+}
+pwInput && pwInput.addEventListener('input',()=>{
+  const s = calcStrength(pwInput.value);
+  segs.forEach((seg,i)=>{
+    seg.classList.toggle('active', i < s);
+  });
+});
+</script>
+{% endblock %}

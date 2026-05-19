@@ -1,0 +1,185 @@
+{% extends "base_public.html" %}
+{% block title %}FakeNews Detector – Fight Misinformation with AI{% endblock %}
+
+{% block content %}
+
+<!-- ===== HERO SLIDER ===== -->
+<section class="hero-slider" id="heroSlider">
+  {% set slides = [
+    ("https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1600", "Stop Fake News in Its Tracks", "Our AI analyses news articles in seconds and tells you what's real."),
+    ("https://images.unsplash.com/photo-1588681664899-f142ff2dc9b1?w=1600", "Powered by Machine Learning", "98%+ accuracy using Logistic Regression and TF-IDF vectorization."),
+    ("https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1600", "Instant Confidence Scores", "Know exactly how confident the AI is in its prediction."),
+    ("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600", "Track Your Detection History", "Every analysis is saved so you can review results anytime."),
+    ("https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1600", "Export Professional Reports", "Generate CSV and PDF reports of your detection results."),
+    ("https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1600", "Secure & Private", "Your data is protected with industry-standard security."),
+    ("https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1600", "Join Thousands of Users", "Be part of the movement fighting online misinformation.")
+  ] %}
+
+  {% for url, heading, sub in slides %}
+  <div class="hero-slide {% if loop.first %}active{% endif %}" style="background-image:url('{{ url }}')">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1>{{ heading }}</h1>
+      <p>{{ sub }}</p>
+      <a href="{{ url_for('public.detect_redirect') }}" class="btn hero-cta">Detect Fake News Now &rarr;</a>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Dot navigation -->
+  <div class="hero-dots">
+    {% for url, heading, sub in slides %}
+    <button class="hero-dot {% if loop.first %}active{% endif %}" data-slide="{{ loop.index0 }}" aria-label="Slide {{ loop.index }}"></button>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ===== STATS SECTION ===== -->
+<section class="stats-section py-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+          <div class="stat-number" data-target="{{ stats.total_detections }}">0</div>
+          <div class="stat-label">Total Articles Analyzed</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+          <div class="stat-number" data-target="{{ stats.fake_count }}">0</div>
+          <div class="stat-label">Fake News Detected</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+          <div class="stat-number" data-target="{{ stats.real_count }}">0</div>
+          <div class="stat-label">Real News Verified</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card text-center">
+          <div class="stat-number" data-target="{{ stats.user_count }}">0</div>
+          <div class="stat-label">Registered Users</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how-section py-5">
+  <div class="container">
+    <h2 class="section-title text-center mb-5">How It Works</h2>
+    <div class="row g-4 text-center">
+      <div class="col-md-4">
+        <div class="how-card">
+          <div class="how-step">1</div>
+          <div class="how-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+          <h3>Paste Article</h3>
+          <p>Copy and paste the full news article text into our detection box.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="how-card">
+          <div class="how-step">2</div>
+          <div class="how-icon"><i class="fa-solid fa-robot"></i></div>
+          <h3>AI Analyzes</h3>
+          <p>Our trained Logistic Regression model processes the text in milliseconds.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="how-card">
+          <div class="how-step">3</div>
+          <div class="how-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <h3>Get Result</h3>
+          <p>Receive a clear Fake or Real verdict with a confidence score.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== WHY TRUST US ===== -->
+<section class="trust-section py-5">
+  <div class="container">
+    <h2 class="section-title text-center mb-5">Why Trust Us</h2>
+    <div class="row g-4">
+      {% set features = [
+        ("<i class='fa-solid fa-brain'></i>", "AI-Powered", "State-of-the-art machine learning model trained on thousands of articles."),
+        ("<i class='fa-solid fa-bolt'></i>", "Real-Time", "Instant analysis results delivered in under a second."),
+        ("<i class='fa-solid fa-chart-bar'></i>", "Confidence Score", "Know how certain the model is about each prediction."),
+        ("<i class='fa-solid fa-lock'></i>", "Secure & Private", "Your articles are never shared or stored without consent."),
+        ("<i class='fa-solid fa-clipboard-list'></i>", "History Tracking", "All detections saved for you to review anytime."),
+        ("<i class='fa-solid fa-file-lines'></i>", "Export Reports", "Download CSV or PDF reports of your detection history.")
+      ] %}
+      {% for icon, title, desc in features %}
+      <div class="col-6 col-md-4">
+        <div class="feature-card">
+          <div class="feature-icon">{{ icon | safe }}</div>
+          <h4>{{ title }}</h4>
+          <p>{{ desc }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA BANNER ===== -->
+<section class="cta-banner py-5">
+  <div class="container text-center">
+    <h2 class="mb-3">Ready to Fight Fake News?</h2>
+    <p class="mb-4">Join thousands using our AI detection system to verify news instantly.</p>
+    <a href="{{ url_for('auth.register') }}" class="btn cta-navy-btn">Register Free</a>
+  </div>
+</section>
+
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Hero slider
+(function(){
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots   = document.querySelectorAll('.hero-dot');
+  let current  = 0, timer;
+
+  function goTo(n){
+    slides[current].classList.remove('active');
+    dots[current].classList.remove('active');
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dots[current].classList.add('active');
+  }
+
+  function startAuto(){ timer = setInterval(()=>goTo(current+1), 5000); }
+  function stopAuto(){ clearInterval(timer); }
+
+  dots.forEach((d,i)=>d.addEventListener('click',()=>{ stopAuto(); goTo(i); startAuto(); }));
+  startAuto();
+})();
+
+// Count-up animation
+(function(){
+  const nums = document.querySelectorAll('.stat-number');
+  const obs  = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      const el = e.target, target = +el.dataset.target, dur = 1500;
+      let start = null;
+      function step(ts){
+        if(!start) start=ts;
+        const prog = Math.min((ts-start)/dur,1);
+        el.textContent = Math.floor(prog*target).toLocaleString();
+        if(prog<1) requestAnimationFrame(step);
+        else el.textContent = target.toLocaleString();
+      }
+      requestAnimationFrame(step);
+      obs.unobserve(el);
+    });
+  },{threshold:0.5});
+  nums.forEach(n=>obs.observe(n));
+})();
+</script>
+{% endblock %}

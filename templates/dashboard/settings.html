@@ -1,0 +1,185 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Settings – Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Settings page: 8px base, light navy-tinted background */
+  #dashMain { background: #e8eef5; }
+  .settings-wrap { font-size: 8px; }
+  .settings-wrap .form-label  { font-size: 1.3rem; }
+  .settings-wrap .form-control{ font-size: 1.3rem; padding: 7px 10px; }
+  .settings-wrap small        { font-size: 1.1rem; }
+  .settings-wrap .btn         { font-size: 1.3rem; }
+  .settings-wrap .dash-card-header { font-size: 1.2rem; }
+  .settings-wrap .text-danger { font-size: 1.2rem; }
+  .settings-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #274665;
+  }
+  .settings-avatar-placeholder {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: #e8eef5;
+    border: 2px solid #274665;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #274665;
+  }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="settings-wrap">
+<div class="page-header mb-4">
+  <h1 class="page-title" style="color:#000; font-size:1.6rem;">Settings</h1>
+  <p class="page-sub">Manage your profile and account security.</p>
+</div>
+
+<div class="row g-4">
+
+  <!-- Profile Settings -->
+  <div class="col-lg-6">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">
+        <i class="fa-solid fa-user me-2"></i>Profile Settings
+      </div>
+      <div class="dash-card-body">
+        <form method="POST" action="{{ url_for('dashboard.settings') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="profile" />
+
+          <!-- Profile Photo -->
+          <div class="mb-3 text-center">
+            <div class="mb-2">
+              {% if current_user.profile_photo %}
+                <img src="{{ url_for('static', filename='images/profile_photos/' ~ current_user.profile_photo) }}"
+                     alt="Profile photo" class="settings-avatar" id="photoPreview" />
+              {% else %}
+                <div class="settings-avatar-placeholder" id="photoPlaceholder">
+                  <i class="fa-solid fa-circle-user"></i>
+                </div>
+                <img src="" alt="Profile photo" class="settings-avatar d-none" id="photoPreview" />
+              {% endif %}
+            </div>
+            <label class="form-label d-block">Profile Photo</label>
+            <input type="file" name="profile_photo" id="photoInput" class="form-control"
+                   accept="image/png,image/jpeg,image/gif,image/webp" />
+            <small class="text-muted">PNG, JPG, GIF or WEBP. Max 16 MB.</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+            <input type="text" name="full_name" class="form-control"
+              value="{{ current_user.full_name }}" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Username <span class="text-danger">*</span></label>
+            <input type="text" name="username" class="form-control"
+              value="{{ current_user.username }}" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control"
+              value="{{ current_user.email }}" disabled
+              style="background:#f8f9fa;" />
+            <small class="text-muted">Email address cannot be changed.</small>
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn btn-orange-full">
+              <i class="fa-solid fa-floppy-disk me-2"></i>Save Profile
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="col-lg-6">
+    <div class="dash-card h-100">
+      <div class="dash-card-header">
+        <i class="fa-solid fa-lock me-2"></i>Change Password
+      </div>
+      <div class="dash-card-body">
+        <form method="POST" action="{{ url_for('dashboard.settings') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="password" />
+
+          <div class="mb-3">
+            <label class="form-label">Current Password</label>
+            <input type="password" name="current_password" class="form-control"
+              required autocomplete="current-password" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password" name="new_password" id="newPw" class="form-control"
+              required minlength="8" autocomplete="new-password" />
+            <small class="text-muted">Minimum 8 characters.</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" name="confirm_password" id="confirmPw" class="form-control"
+              required autocomplete="new-password" />
+            <div id="pwMismatch" class="text-danger mt-1" style="display:none;">
+              Passwords do not match.
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn btn-orange-full" id="changePwBtn">
+              <i class="fa-solid fa-key me-2"></i>Change Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /.settings-wrap -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Profile photo preview
+const photoInput = document.getElementById('photoInput');
+if (photoInput) {
+  photoInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const preview = document.getElementById('photoPreview');
+    const placeholder = document.getElementById('photoPlaceholder');
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      preview.src = e.target.result;
+      preview.classList.remove('d-none');
+      if (placeholder) placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Client-side password match check
+const newPw     = document.getElementById('newPw');
+const confirmPw = document.getElementById('confirmPw');
+const mismatch  = document.getElementById('pwMismatch');
+const btn       = document.getElementById('changePwBtn');
+
+function checkMatch() {
+  if (confirmPw.value && newPw.value !== confirmPw.value) {
+    mismatch.style.display = 'block';
+    btn.disabled = true;
+  } else {
+    mismatch.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+newPw.addEventListener('input', checkMatch);
+confirmPw.addEventListener('input', checkMatch);
+</script>
+{% endblock %}
