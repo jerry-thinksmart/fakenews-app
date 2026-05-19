@@ -11,19 +11,13 @@ public_bp = Blueprint('public', __name__)
 
 @public_bp.route('/')
 def home():
-    total_detections = DetectionHistory.query.count()
-    fake_count = DetectionHistory.query.filter_by(prediction='Fake').count()
-    real_count = DetectionHistory.query.filter_by(prediction='Real').count()
-    user_count = User.query.count()
-
     stats = {
-        'total_detections': total_detections,
-        'fake_count': fake_count,
-        'real_count': real_count,
-        'user_count': user_count,
+        "total_detections": 10,
+        "fake_count": 5,
+        "real_count": 5,
+        "user_count": 3
     }
     return render_template('public/home.html', stats=stats)
-
 
 @public_bp.route('/about')
 def about():
